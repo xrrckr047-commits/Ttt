@@ -1,0 +1,148 @@
+-- โหลด UI Library (Orion Library)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "My Custom Hub", 
+    HidePremium = false, 
+    SaveConfig = true, 
+    ConfigFolder = "DeltaScriptConfig"
+})
+
+-- ตัวแปรตั้งค่า
+local WalkSpeedValue = 16
+local JumpPowerValue = 50
+local SpeedToggle = false
+local JumpToggle = false
+local KillAuraToggle = false
+local KillAuraRange = 25 -- ระยะทำการของฆ่าบอทออร่า
+
+-- สร้าง Tab หลัก
+local MainTab = Window:MakeTab({
+    Name = "หน้าหลัก",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- ==================== 1. วิ่งเร็วปรับได้ (1-100) ====================
+MainTab:AddSection({ Name = "ระบบเคลื่อนที่ (Movement)" })
+
+MainTab:AddSlider({
+    Name = "ความเร็วการวิ่ง (Speed)",
+    Min = 1,
+    Max = 100,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(Value)
+        WalkSpeedValue = Value
+        if SpeedToggle then
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.WalkSpeed = WalkSpeedValue
+            end
+        end
+    end    
+})
+
+MainTab:AddToggle({
+    Name = "เปิดใช้งานวิ่งเร็ว",
+    Default = false,
+    Callback = function(Value)
+        SpeedToggle = Value
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            if SpeedToggle then
+                char.Humanoid.WalkSpeed = WalkSpeedValue
+            else
+                char.Humanoid.WalkSpeed = 16 -- ค่าเริ่มต้น
+            end
+        end
+    end    
+})
+
+-- ==================== 2. กระโดดสูงปรับได้ (1-100) ====================
+MainTab:AddSlider({
+    Name = "พลังการกระโดด (Jump Power)",
+    Min = 1,
+    Max = 100,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Power",
+    Callback = function(Value)
+        JumpPowerValue = Value
+        if JumpToggle then
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.UseJumpPower = true
+                char.Humanoid.JumpPower = JumpPowerValue
+            end
+        end
+    end    
+})
+
+MainTab:AddToggle({
+    Name = "เปิดใช้งานกระโดดสูง",
+    Default = false,
+    Callback = function(Value)
+        JumpToggle = Value
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.UseJumpPower = true
+            if JumpToggle then
+                char.Humanoid.JumpPower = JumpPowerValue
+            else
+                char.Humanoid.JumpPower = 50 -- ค่าเริ่มต้น
+            end
+        end
+    end    
+})
+
+-- ==================== 3. ฆ่าบอทออร่า (Kill Aura) ====================
+MainTab:AddSection({ Name = "ระบบต่อสู้ (Combat)" })
+
+MainTab:AddToggle({
+    Name = "เปิดใช้งาน Kill Aura (ฆ่าบอท/NPC รอบตัว)",
+    Default = false,
+    Callback = function(Value)
+        KillAuraToggle = Value
+    end    
+})
+
+-- Loop สำหรับอัปเดตค่าความเร็ว/กระโดดเมื่อตัวละครเกิดใหม่ และระบบ Kill Aura
+task.spawn(function()
+    while task.wait(0.2) do
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        
+        -- อัปเดตค่า WalkSpeed / JumpPower ป้องกันเกมรีเซ็ตค่า
+        if char and char:FindFirstChild("Humanoid") then
+            if SpeedToggle then
+                char.Humanoid.WalkSpeed = WalkSpeedValue
+            end
+            if JumpToggle then
+                char.Humanoid.UseJumpPower = true
+                char.Humanoid.JumpPower = JumpPowerValue
+            end
+        end
+        
+        -- ทำงานระบบ Kill Aura
+        if KillAuraToggle and char and char:FindFirstChild("HumanoidRootPart") then
+            for _, obj in pairs(workspace:GetChildren()) do
+                -- ตรวจหา NPC/บอท (มี Humanoid แต่ไม่ใช่ผู้เล่น)
+                if obj:IsA("Model") and obj ~= char and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+                    if not game.Players:GetPlayerFromCharacter(obj) and obj.Humanoid.Health > 0 then
+                        local distance = (char.HumanoidRootPart.Position - obj.HumanoidRootPart.Position).Magnitude
+                        if distance <= KillAuraRange then
+                            -- ปรับเลือดบอทให้เหลือ 0
+                            obj.Humanoid.Health = 0
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+OrionLib:Init()
