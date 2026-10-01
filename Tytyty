@@ -1,0 +1,35 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local character = script.Parent
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local AURA_RANGE = 15 -- ระยะของออร่า (studs)
+local DAMAGE_PER_TICK = 10 -- ดาเมจต่อครั้ง
+local TICK_RATE = 0.5 -- ทำดาเมจทุกๆ กี่วินาที
+
+local lastDamageTime = 0
+
+RunService.Heartbeat:Connect(function()
+	if tick() - lastDamageTime >= TICK_RATE then
+		lastDamageTime = tick()
+		
+		-- วนลูปหาศัตรูหรือผู้เล่นรอบๆ
+		for _, target in pairs(workspace:GetChildren()) do
+			if target:IsA("Model") and target ~= character then
+				local targetHrp = target:FindFirstChild("HumanoidRootPart")
+				local targetHumanoid = target:FindFirstChildOfClass("Humanoid")
+				
+				if targetHrp and targetHumanoid and targetHumanoid.Health > 0 then
+					-- คำนวณระยะห่าง
+					local distance = (hrp.Position - targetHrp.Position).Magnitude
+					
+					if distance <= AURA_RANGE then
+						-- ทำการโจมตี/ลดเลือด
+						targetHumanoid:TakeDamage(DAMAGE_PER_TICK)
+					end
+				end
+			end
+		end
+	end
+end)
